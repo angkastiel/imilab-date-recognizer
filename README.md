@@ -86,7 +86,7 @@ Lib\site-packages
 ```
 4) Download `get-pip.py` (https://bootstrap.pypa.io/get-pip.py) and put it to `deps/python-3.10.0-embed-amd64/get-pip.py`
 5) Run `python get-pip.py` for `deps/python-3.10.0-embed-amd64`
-6) Run `pip install pillow` for `deps/python-3.10.0-embed-amd64`
+6) Run `pip install pillow==11.1.0` for `deps/python-3.10.0-embed-amd64`
 
 ## 5) Modify python.bat
 Or don't modify if you use python in `deps/python-3.10.0-embed-amd64`
