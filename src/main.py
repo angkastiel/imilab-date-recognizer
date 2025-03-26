@@ -4,6 +4,7 @@ import subprocess
 
 import sys
 from pathlib import Path
+import json
 
 sys.path.insert(0, str(Path(__file__).parent.resolve()))
 
@@ -12,13 +13,25 @@ import tempfile
 
 from PIL import Image, ImageOps
 
-def get_file_path(relative_path: str) -> str:
+
+def get_file_path(path: str) -> str:
     script_dir = Path(__file__).parent.resolve()
-    return (script_dir / relative_path).resolve()
+    return (script_dir / path).resolve()
 
 
-TESSERACT_PATH = get_file_path(r'..\deps\Tesseract-OCR\tesseract.exe')
-FFMPEG_PATH = get_file_path(r'..\deps\ffmpeg-5.0.1-full\bin\ffmpeg.exe')
+def check_file_path(path: str):
+    if not os.path.exists(path):
+        raise Exception(f"Path not found: {path}")
+
+
+with open(get_file_path('config.json'), 'r', encoding='utf-8') as f:
+    config = json.load(f)
+
+FFMPEG_PATH = get_file_path(config.get("ffmpeg", {}).get("path"))
+TESSERACT_PATH = get_file_path(config.get("tesseract", {}).get("path"))
+
+check_file_path(FFMPEG_PATH)
+check_file_path(TESSERACT_PATH)
 
 
 import re
@@ -46,35 +59,32 @@ def check_duration_format(input_string):
     else:
         return False
 
-def crop_and_save_image(input_image_path: str, output_image_path: str, invert: bool, scale: float) -> bool:    
+def crop_imilab_frame(image: Image) -> Image:
+    image = image.resize((2560, 1440), Image.LANCZOS);
+    x = 300
+    y = 0
+    width = 570
+    height = 65
+    return image.crop((x, y, x + width, y + height))
+    
+
+def prepare_image_for_recognition(input_image_path: str, output_image_path: str, invert: bool, scale: float) -> bool:    
     try:
-        # Чтение изображения с помощью Pillow
         image = Image.open(input_image_path)
-
-        img_res = image.resize((2560, 1440), Image.LANCZOS);
+        relult_image = crop_imilab_frame(image)
         image.close()
-        
-        x = 300
-        y = 0
-        width = 570
-        height = 65
-
-        # Обрезка изображения по заданному прямоугольнику
-        cropped_image = img_res.crop((x, y, x + width, y + height))
-        img_res.close()
-        relult_image = cropped_image
         
         if scale is not None:
             scale_image = relult_image.resize((round(relult_image.width * scale), round(relult_image.height * scale)), Image.LANCZOS);
-            relult_image.close()
             relult_image = scale_image
         
         if invert:
             inverted_image = ImageOps.invert(relult_image)
-            relult_image.close()
             relult_image = inverted_image
 
-        # Сохранение обрезанного изображения
+        relult_image = relult_image.convert('L')
+        relult_image = relult_image.point(lambda x: 0 if x < 128 else 255, '1')
+
         relult_image.save(output_image_path)
         relult_image.close()
         return True
@@ -83,19 +93,14 @@ def crop_and_save_image(input_image_path: str, output_image_path: str, invert: b
         return False
 
 
-
-
-# Функция для вызова Tesseract OCR
 def run_tesseract(image_path: str) -> str:
     try:
-        # Вызов Tesseract OCR с выводом в stdout
         result = subprocess.run(
-            [TESSERACT_PATH, '--oem', '1', image_path, 'stdout'],  # 'stdout' указывает на вывод в консоль
-            capture_output=True,  # Захватываем вывод
-            text=True,  # Декодируем вывод как текст
-            check=True  # Проверяем на ошибки
+            [TESSERACT_PATH, '--oem', '3', '--psm', '6', '-c', 'tessedit_char_whitelist=0123456789 :/', image_path, 'stdout'],
+            capture_output=True,
+            text=True,
+            check=True
         )
-        # Возвращаем распознанный текст
         return result.stdout
     except subprocess.CalledProcessError as e:
         print(f"Cannot OCR {image_path}: {e}")
@@ -110,7 +115,7 @@ def get_temp_jpg_file() -> str:
 def do_recognize_timestamp(image_path: str, invert_image: bool, scale_image: float) -> str:
     temp_fn: str = get_temp_jpg_file()
     try:
-        if not crop_and_save_image(image_path, temp_fn, invert_image, scale_image):
+        if not prepare_image_for_recognition(image_path, temp_fn, invert_image, scale_image):
             print(f'Cannot crop image {image_path}')
             return None
         return str(run_tesseract(temp_fn)).strip('(').strip(')').strip('.').strip(',').strip()

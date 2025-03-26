@@ -1,0 +1,8 @@
+{
+    "ffmpeg": {
+        "path": "..\\deps\\ffmpeg-5.0.1-full\\bin\\ffmpeg.exe"
+    },
+    "tesseract": {
+        "path": "..\\deps\\Tesseract-OCR\\tesseract.exe"
+    }
+}
