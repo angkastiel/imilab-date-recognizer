@@ -1,9 +1,13 @@
 # imilab-date-recognizer
-Recognize timestamp on pics and video records of Imilab C30
+Recognize timestamp on pictures and video records saved with Imilab Home application. Tested on camera Imilab C30.
 
 # Usage
 
 ## Recognize date and time from camera photo or video
+```
+recognize.bat -s "<path-to-folder-with-records>" -d "<path-to-results-json-file>"
+```
+Example:
 ```
 recognize.bat -s "examples" -d "rec.json"
 ```
@@ -24,16 +28,28 @@ Example of results in rec.json file:
 
 ## Manual check files
 ```
+manual_check.bat -s "<path-to-recodnition-results-json-file>" -d "<path-to-folder-with-records>"
+```
+Example:
+```
 manual_check.bat -s "rec.json" -d "examples"
 ```
 
 ## Analyze date
+```
+analyze.bat -s "<path-to-recodnition-results-json-file>"
+```
+Example:
 ```
 analyze.bat -s "rec.json"
 ```
 
 ## Recode date in timestamp field
 Recode from format yyyy/mm/dd HH:MM:SS to yyyy-mm-dd HH:MM:SS
+```
+finish.bat -s "<path-to-recodnition-results-json-file>" -d "<path-to-results-json-file>"
+```
+Example:
 ```
 finish.bat -s "rec.json" -d "timestamp.json"
 ```
