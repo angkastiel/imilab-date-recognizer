@@ -77,16 +77,16 @@ Put actual paths in config
 
 ## 4) Install Python and PIL library
 Or download and configure portable python.
-1) Download Python 3.10.0 Windows embeddable package from https://www.python.org/downloads/
+1) Download Python 3.10.0 Windows embeddable package (x64) from https://www.python.org/downloads/
 2) Put Python in `deps/python-3.10.0-embed-amd64`
-3) Modify file `python310._pth`. Add paths:
+3) Modify file `deps/python-3.10.0-embed-amd64/python310._pth`. Add paths:
 ```
 Lib
 Lib\site-packages
 ```
-4) Download `get-pip.py` (https://bootstrap.pypa.io/get-pip.py) and put it in python folder
-5) Run `python get-pip.py`
-6) Run `pip install pillow`
+4) Download `get-pip.py` (https://bootstrap.pypa.io/get-pip.py) and put it to `deps/python-3.10.0-embed-amd64/get-pip.py`
+5) Run `python get-pip.py` for `deps/python-3.10.0-embed-amd64`
+6) Run `pip install pillow` for `deps/python-3.10.0-embed-amd64`
 
 ## 5) Modify python.bat
 Or don't modify if you use python in `deps/python-3.10.0-embed-amd64`
