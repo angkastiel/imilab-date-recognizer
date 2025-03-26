@@ -59,4 +59,8 @@ Put actual paths in config
 }
 ```
 
-Tested on ffmpeg 5.0.1 and Tesseract 5.5.0
+## 4) Install Python and PIL library
+
+## 5) Modify python.bat
+
+Tested on ffmpeg 5.0.1, Tesseract 5.5.0, Python 3.10.0 and PIL 11.1.0
