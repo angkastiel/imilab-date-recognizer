@@ -38,7 +38,7 @@ Recode from format yyyy/mm/dd HH:MM:SS to yyyy-mm-dd HH:MM:SS
 finish.bat -s "rec.json" -d "timestamp.json"
 ```
 
-## Setup
+# Setup
 
 ## 1) Install Tesseract-OCR
 See https://github.com/tesseract-ocr/tesseract
