@@ -169,17 +169,36 @@ def detect_timestamp(file_path: str) -> str:
            os.remove(temp_fn) 
     return None
     
+
+def get_file_extension(filename):
+    _, ext = os.path.splitext(filename)
+    return ext.lower()
+
+
+def is_media_file(filename):
+    return get_file_extension(filename) in ('.jpg', '.jpeg', '.mp4')
     
+
 import argparse
 parser = argparse.ArgumentParser(description='Recognize timestamp on video and photo')
 parser.add_argument('--source', '-s', required=True, help='Source directory path')
 parser.add_argument('--destination', '-d', required=True, help='Destination file path')
+parser.add_argument('--skip', help='Json file for skip files')
 
 args = parser.parse_args()
+
+skip_list = list()
+if args.skip:
+    with open(args.skip, 'r', encoding='utf-8') as f:
+        arr = json.load(f)
+        skip_list = [o["file"] for o in arr]
 
 results = list()
 
 for filename in os.listdir(args.source):
+    if (filename in skip_list) or not is_media_file(filename):
+        print("Skip", filename)
+        continue
     file_path = os.path.join(args.source, filename)
     
     o = dict()

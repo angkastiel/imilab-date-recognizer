@@ -6,6 +6,7 @@ Recognize timestamp on pictures and video records saved with Imilab Home applica
 ## Recognize date and time from camera photo or video
 ```
 recognize.bat -s "<path-to-folder-with-records>" -d "<path-to-results-json-file>"
+recognize.bat -s "<path-to-folder-with-records>" -d "<path-to-results-json-file>" --skip "<path-to-results-json-file-for-skip>"
 ```
 Example:
 ```
