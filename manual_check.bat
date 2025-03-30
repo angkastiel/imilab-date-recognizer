@@ -1,2 +1,2 @@
 @echo off
-@call python.bat .\src\manual_check.py %*
+@call "%~dp0\python.bat" "%~dp0\src\manual_check.py" %*

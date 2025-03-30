@@ -1,2 +1,2 @@
 @echo off
-@call python.bat .\src\re-encode-date.py %*
+@call "%~dp0\python.bat" "%~dp0\src\re-encode-date.py" %*
