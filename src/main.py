@@ -23,16 +23,24 @@ def check_file_path(path: str):
     if not os.path.exists(path):
         raise Exception(f"Path not found: {path}")
 
+class Config:
+    FFMPEG_PATH: str
+    TESSERACT_PATH: str
 
-with open(get_file_path('config.json'), 'r', encoding='utf-8') as f:
-    config = json.load(f)
 
-FFMPEG_PATH = get_file_path(config.get("ffmpeg", {}).get("path"))
-TESSERACT_PATH = get_file_path(config.get("tesseract", {}).get("path"))
+def load_config(config_file: str) -> Config:
+    with open(get_file_path(config_file), 'r', encoding='utf-8') as f:
+        config = json.load(f)
 
-check_file_path(FFMPEG_PATH)
-check_file_path(TESSERACT_PATH)
+    c = Config()
+    c.FFMPEG_PATH = get_file_path(config.get("ffmpeg", {}).get("path"))
+    c.TESSERACT_PATH = get_file_path(config.get("tesseract", {}).get("path"))
 
+    check_file_path(c.FFMPEG_PATH)
+    check_file_path(c.TESSERACT_PATH)
+    return c
+
+config = None
 
 import re
 from datetime import datetime
@@ -96,7 +104,7 @@ def prepare_image_for_recognition(input_image_path: str, output_image_path: str,
 def run_tesseract(image_path: str) -> str:
     try:
         result = subprocess.run(
-            [TESSERACT_PATH, '--oem', '3', '--psm', '6', '-c', 'tessedit_char_whitelist=0123456789 :/', image_path, 'stdout'],
+            [config.TESSERACT_PATH, '--oem', '3', '--psm', '6', '-c', 'tessedit_char_whitelist=0123456789 :/', image_path, 'stdout'],
             capture_output=True,
             text=True,
             check=True
@@ -153,7 +161,7 @@ def recognize_timestamp(image_path: str) -> str:
     return s, True
 
 
-ffmpeg = ffmpeg.FFmpegRunner(FFMPEG_PATH)
+ffmpeg_exe = None
 
 def detect_timestamp(file_path: str) -> str:
     if file_path.lower().endswith(('.jpg', '.jpeg')):
@@ -161,7 +169,7 @@ def detect_timestamp(file_path: str) -> str:
     if file_path.lower().endswith(('.mp4')):    
         temp_fn = get_temp_jpg_file()
         try:
-            if not ffmpeg.extract_first_frame(file_path, temp_fn):
+            if not ffmpeg_exe.extract_first_frame(file_path, temp_fn):
                 print(f'Cannot extract frames for {file_path}')
                 return None
             return recognize_timestamp(temp_fn)
@@ -179,31 +187,21 @@ def is_media_file(filename):
     return get_file_extension(filename) in ('.jpg', '.jpeg', '.mp4')
     
 
-import argparse
-parser = argparse.ArgumentParser(description='Recognize timestamp on video and photo')
-parser.add_argument('--source', '-s', required=True, help='Source directory path')
-parser.add_argument('--destination', '-d', required=True, help='Destination file path')
-parser.add_argument('--skip', help='Json file for skip files')
-
-args = parser.parse_args()
-
-skip_list = list()
-if args.skip:
-    with open(args.skip, 'r', encoding='utf-8') as f:
+def load_skip_list(skip_file: str) -> list:
+    with open(skip_file, 'r', encoding='utf-8') as f:
         arr = json.load(f)
-        skip_list = [o["file"] for o in arr]
+        return [o["file"] for o in arr]
 
-results = list()
 
-for filename in os.listdir(args.source):
-    if (filename in skip_list) or not is_media_file(filename):
-        print("Skip", filename)
-        continue
-    file_path = os.path.join(args.source, filename)
-    
+def save_results(data: any, file: str):
+    with open(file, 'w', encoding='utf-8') as f:
+        json.dump(data, f, indent=4)
+
+
+def process_file(full_filename: str, filename: str):
     o = dict()
     o["file"] = filename
-    r = detect_timestamp(file_path)
+    r = detect_timestamp(full_filename)
     if r is None:
         str_timestamp, has_difs = None, None
     else:
@@ -216,19 +214,45 @@ for filename in os.listdir(args.source):
     
     dur_text = None
     if filename.lower().endswith(('.mp4')):         
-        dur_text = ffmpeg.extract_duration(file_path)
+        dur_text = ffmpeg_exe.extract_duration(full_filename)
         if not check_duration_format(dur_text):
             dur_text = f"??????????? {dur_text}"
         o["duration"] = dur_text
-            
+    return o
+
+
+def process_dir(source_dir: str, skip_list: list) -> list:
+    results = list()
+    for filename in os.listdir(source_dir):
+        if (filename in skip_list) or not is_media_file(filename):
+            print("Skip", filename)
+            continue
+        print(f"{filename}")
+        file_path = os.path.join(source_dir, filename)
         
-    results.append(o)
-    print(f"{filename}")
-    print(str_timestamp)
-    print(dur_text)
-    print("-" * 40)  # Разделитель для удобства чтения
+        o = process_file(file_path, filename)
+        results.append(o)
+        
+        print(o['timestamp'])
+        if 'duration' in o:
+            print(o['duration'])
+        print("-" * 40)
+    return results
     
-import json
-with open(args.destination, 'w', encoding='utf-8') as json_file:
-    json.dump(results, json_file, indent=4)
+
+import argparse
+parser = argparse.ArgumentParser(description='Recognize timestamp on video and photo')
+parser.add_argument('source_dir', help='Source directory path')
+parser.add_argument('output_file', help='Output file path')
+parser.add_argument('--skip', help='Json file for skip files')
+
+args = parser.parse_args()
+
+config = load_config('config.json')
+ffmpeg_exe = ffmpeg.FFmpegRunner(config.FFMPEG_PATH)
+
+skip_list = load_skip_list(args.skip) if args.skip else list()
+results = process_dir(os.path.abspath(args.source_dir), skip_list)    
+save_results(results, args.output_file)
+
             
