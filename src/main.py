@@ -144,21 +144,20 @@ def recognize_timestamp(image_path: str) -> str:
     s2: str = do_recognize_timestamp(image_path, invert_image=True, scale_image=None)
     s3: str = do_recognize_timestamp(image_path, invert_image=True, scale_image=0.5)
     if s1 == s2 == s3:
-        return s3, False
-    print(s1)
-    print(s2)
-    print(s3)
+        return (s3, None)
         
     s = s3
     if not check_date_time_format(s):
         if check_date_time_format(s2):
             s = s2
-        else:
-            if check_date_time_format(s1):
-                s = s1
+        elif check_date_time_format(s1):
+            s = s1
     if check_date_time_format(s) and (get_only_digits(s1) == get_only_digits(s2) == get_only_digits(s3)):
-        return s, False
-    return s, True
+        return (s, None)
+    print(s1)
+    print(s2)
+    print(s3)
+    return (s, [s1, s2, s3])
 
 
 ffmpeg_exe = None
@@ -187,10 +186,11 @@ def is_media_file(filename):
     return get_file_extension(filename) in ('.jpg', '.jpeg', '.mp4')
     
 
-def load_skip_list(skip_file: str) -> list:
-    with open(skip_file, 'r', encoding='utf-8') as f:
-        arr = json.load(f)
-        return [o["file"] for o in arr]
+def load_skip_list(skip_files: str) -> list:
+    for skip_f in skip_files.split(';'):
+        with open(skip_f, 'r', encoding='utf-8') as f:
+            arr = json.load(f)
+            return [o["file"] for o in arr]
 
 
 def save_results(data: any, file: str):
@@ -202,15 +202,20 @@ def process_file(full_filename: str, filename: str):
     o = dict()
     o["file"] = filename
     r = detect_timestamp(full_filename)
-    if r is None:
-        str_timestamp, has_difs = None, None
-    else:
-        str_timestamp, has_difs = r
+    dif_list = None
+    str_timestamp = None
+    if r is not None:
+        if len(r) == 1:
+            str_timestamp = r
+        elif len(r) >= 2:
+            str_timestamp, dif_list = r
     if not check_date_time_format(str_timestamp):
         str_timestamp = f"??????????? {str_timestamp}"
     o["timestamp"] = str_timestamp
-    if has_difs is not None and has_difs:
+    if dif_list is not None:
         o["need_manual_check"] = True
+        for i, dif_s in enumerate(dif_list):
+            o[f"timestamp_{i}"] = dif_s
     
     dur_text = None
     if filename.lower().endswith(('.mp4')):         
