@@ -186,8 +186,10 @@ def is_media_file(filename):
     return get_file_extension(filename) in ('.jpg', '.jpeg', '.mp4')
     
 
-def load_skip_list(skip_files: str) -> list:
-    for skip_f in skip_files.split(';'):
+def load_skip_list(skip_arg: str) -> list:
+    if os.path.isdir(skip_arg):
+        return [f for f in os.listdir(skip_arg) if is_media_file(f)]
+    for skip_f in skip_arg.split(';'):
         with open(skip_f, 'r', encoding='utf-8') as f:
             arr = json.load(f)
             return [o["file"] for o in arr]
